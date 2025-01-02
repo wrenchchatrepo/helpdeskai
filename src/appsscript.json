@@ -1,0 +1,105 @@
+{
+  "timeZone": "America/Los_Angeles",
+  "dependencies": {
+    "enabledAdvancedServices": [{
+      "userSymbol": "Calendar",
+      "serviceId": "calendar",
+      "version": "v3"
+    }, {
+      "userSymbol": "Gmail",
+      "serviceId": "gmail",
+      "version": "v1"
+    }, {
+      "userSymbol": "Drive",
+      "serviceId": "drive",
+      "version": "v2"
+    }, {
+      "userSymbol": "BigQuery",
+      "serviceId": "bigquery",
+      "version": "v2"
+    }]
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "webapp": {
+    "executeAs": "USER_ACCESSING",
+    "access": "DOMAIN"
+  },
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/script.external_request",
+    "https://www.googleapis.com/auth/script.container.ui",
+    "https://www.googleapis.com/auth/calendar",
+    "https://www.googleapis.com/auth/calendar.events",
+    "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/gmail.send",
+    "https://www.googleapis.com/auth/gmail.modify",
+    "https://www.googleapis.com/auth/gmail.labels",
+    "https://www.googleapis.com/auth/bigquery",
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/script.send_mail",
+    "https://www.googleapis.com/auth/spreadsheets"
+  ],
+  "urlFetchWhitelist": [
+    "https://www.wrench.chat/",
+    "https://storage.googleapis.com/",
+    "https://bigquery.googleapis.com/"
+  ],
+  "executionApi": {
+    "access": "DOMAIN"
+  },
+  "chat": {
+    "addToSpaces": ["ROOM"],
+    "executeAs": "USER_ACCESSING"
+  },
+  "gmail": {
+    "addons": {
+      "common": {
+        "name": "HelpDesk",
+        "logoUrl": "https://www.wrench.chat/logo.png",
+        "useLocaleFromApp": true,
+        "homepageTrigger": {
+          "runFunction": "handleGmailHomePageOpen",
+          "enabled": true
+        }
+      }
+    }
+  },
+  "calendar": {
+    "addons": {
+      "common": {
+        "name": "HelpDesk",
+        "logoUrl": "https://www.wrench.chat/logo.png",
+        "useLocaleFromApp": true,
+        "homepageTrigger": {
+          "runFunction": "handleCalendarHomePageOpen",
+          "enabled": true
+        }
+      }
+    }
+  },
+  "sheets": {
+    "macros": [{
+      "menuName": "Export to HelpDesk",
+      "functionName": "exportToHelpDesk",
+      "defaultShortcut": "Ctrl+Alt+H"
+    }]
+  },
+  "addOns": {
+    "common": {
+      "name": "HelpDesk",
+      "logoUrl": "https://www.wrench.chat/logo.png",
+      "useLocaleFromApp": true,
+      "homepageTrigger": {
+        "enabled": true,
+        "runFunction": "handleAddOnHomePageOpen"
+      },
+      "universalActions": [{
+        "label": "Create Support Card",
+        "runFunction": "handleCreateCard"
+      }, {
+        "label": "View Cards",
+        "runFunction": "handleViewCards"
+      }]
+    }
+  }
+}

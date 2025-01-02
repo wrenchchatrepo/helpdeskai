@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HelpDesk - Admin</title>
+  <?!= include('templates/styles'); ?>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <img src="https://www.wrench.chat/logo.png" alt="Wrench.chat Logo" height="40">
+        <span>HelpDesk</span>
+      </div>
+      <div class="user-info">
+        <span><?= user ?></span>
+        <a href="#" onclick="google.script.host.close()" class="logout-btn">Logout</a>
+      </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav-bar">
+      <a href="?page=home">Home</a>
+      <a href="?page=cards">Cards</a>
+      <a href="?page=admin" class="active">Admin</a>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Admin Dashboard -->
+      <section class="admin-dashboard">
+        <h1>Admin Dashboard</h1>
+        
+        <!-- Statistics Overview -->
+        <div class="statistics-grid">
+          <div class="stat-card">
+            <h3>Total Customers</h3>
+            <p class="stat-number"><?= statistics.total_customers ?></p>
+          </div>
+          <div class="stat-card">
+            <h3>Total Issues</h3>
+            <p class="stat-number"><?= statistics.total_issues ?></p>
+          </div>
+          <div class="stat-card">
+            <h3>Active Issues</h3>
+            <p class="stat-number"><?= statistics.in_progress_issues ?></p>
+          </div>
+          <div class="stat-card">
+            <h3>Resolution Rate</h3>
+            <p class="stat-number">
+              <?= Math.round((statistics.resolved_issues / statistics.total_issues) * 100) ?>%
+            </p>
+          </div>
+        </div>
+
+        <!-- Admin Actions -->
+        <div class="admin-actions">
+          <button onclick="exportData()" class="secondary-btn">
+            Export Data
+          </button>
+          <button onclick="showSystemSettings()" class="secondary-btn">
+            System Settings
+          </button>
+          <button onclick="showUserManagement()" class="secondary-btn">
+            User Management
+          </button>
+        </div>
+
+        <!-- Cards Management -->
+        <div class="cards-management">
+          <h2>Cards Management</h2>
+          
+          <!-- Filters -->
+          <div class="filters">
+            <div class="search-box">
+              <input type="text" id="searchInput" placeholder="Search cards..." onkeyup="filterCards()">
+            </div>
+            <div class="filter-group">
+              <select id="statusFilter" onchange="filterCards()">
+                <option value="">All Statuses</option>
+                <option value="new">New</option>
+                <option value="in_progress">In Progress</option>
+                <option value="resolved">Resolved</option>
+                <option value="closed">Closed</option>
+              </select>
+              <select id="sourceFilter" onchange="filterCards()">
+                <option value="">All Sources</option>
+                <option value="email">Email</option>
+                <option value="slack">Slack</option>
+                <option value="chat">Chat</option>
+              </select>
+              <select id="labelFilter" onchange="filterCards()">
+                <option value="">All Labels</option>
+                <? Object.entries(CONFIG.LABELS).forEach(function([category, labels]) { ?>
+                  <optgroup label="<?= category ?>">
+                    <? labels.forEach(function(label) { ?>
+                      <option value="<?= label ?>"><?= label ?></option>
+                    <? }); ?>
+                  </optgroup>
+                <? }); ?>
+              </select>
+            </div>
+          </div>
+
+          <!-- Cards Table -->
+          <div class="cards-table-container">
+            <table class="cards-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Title</th>
+                  <th>Customer</th>
+                  <th>Status</th>
+                  <th>Source</th>
+                  <th>Created</th>
+                  <th>Updated</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <? cards.forEach(function(card) { ?>
+                  <tr data-id="<?= card.id ?>" data-status="<?= card.status ?>" data-source="<?= card.source ?>">
+                    <td><?= card.id ?></td>
+                    <td><?= card.title ?></td>
+                    <td><?= card.metadata.email || 'N/A' ?></td>
+                    <td>
+                      <span class="status-badge <?= card.status ?>">
+                        <?= card.status ?>
+                      </span>
+                    </td>
+                    <td><?= card.source ?></td>
+                    <td><?= formatDate(card.created_at) ?></td>
+                    <td><?= formatDate(card.updated_at) ?></td>
+                    <td>
+                      <button onclick="viewCardDetails('<?= card.id ?>')" class="icon-btn" data-tooltip="View Details">
+                        👁️
+                      </button>
+                      <button onclick="editCard('<?= card.id ?>')" class="icon-btn" data-tooltip="Edit">
+                        ✏️
+                      </button>
+                      <button onclick="deleteCard('<?= card.id ?>')" class="icon-btn" data-tooltip="Delete">
+                        🗑️
+                      </button>
+                    </td>
+                  </tr>
+                <? }); ?>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- System Settings Dialog -->
+  <div id="system-settings-dialog" class="dialog" style="display: none;">
+    <h2>System Settings</h2>
+    <form id="systemSettingsForm" onsubmit="saveSystemSettings(event)">
+      <div class="form-group">
+        <label>Email Integration</label>
+        <div class="checkbox-group">
+          <input type="checkbox" id="enableEmail" name="enableEmail">
+          <label for="enableEmail">Enable Email Processing</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Slack Integration</label>
+        <div class="checkbox-group">
+          <input type="checkbox" id="enableSlack" name="enableSlack">
+          <label for="enableSlack">Enable Slack Integration</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Auto-Labeling</label>
+        <div class="checkbox-group">
+          <input type="checkbox" id="enableAutoLabeling" name="enableAutoLabeling">
+          <label for="enableAutoLabeling">Enable Automatic Label Detection</label>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" onclick="hideDialog('system-settings-dialog')" class="secondary-btn">
+          Cancel
+        </button>
+        <button type="submit" class="primary-btn">
+          Save Settings
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- User Management Dialog -->
+  <div id="user-management-dialog" class="dialog" style="display: none;">
+    <h2>User Management</h2>
+    <div class="user-list">
+      <!-- User list will be populated via JavaScript -->
+    </div>
+    <div class="dialog-actions">
+      <button onclick="hideDialog('user-management-dialog')" class="secondary-btn">
+        Close
+      </button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <?!= include('templates/scripts'); ?>
+  <script>
+    // Filter cards based on search input and filters
+    function filterCards() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const statusFilter = document.getElementById('statusFilter').value;
+      const sourceFilter = document.getElementById('sourceFilter').value;
+      const labelFilter = document.getElementById('labelFilter').value;
+      
+      const rows = document.querySelectorAll('.cards-table tbody tr');
+      
+      rows.forEach(row => {
+        const title = row.cells[1].textContent.toLowerCase();
+        const customer = row.cells[2].textContent.toLowerCase();
+        const status = row.dataset.status;
+        const source = row.dataset.source;
+        
+        const matchesSearch = title.includes(searchTerm) || customer.includes(searchTerm);
+        const matchesStatus = !statusFilter || status === statusFilter;
+        const matchesSource = !sourceFilter || source === sourceFilter;
+        
+        row.style.display = matchesSearch && matchesStatus && matchesSource ? '' : 'none';
+      });
+    }
+
+    // Export data
+    function exportData() {
+      google.script.run
+        .withSuccessHandler(downloadExport)
+        .withFailureHandler(handleError)
+        .exportCardData();
+    }
+
+    // Download exported data
+    function downloadExport(data) {
+      const blob = new Blob([data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `helpdesk_export_${new Date().toISOString()}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    }
+
+    // Show system settings
+    function showSystemSettings() {
+      google.script.run
+        .withSuccessHandler(populateSystemSettings)
+        .withFailureHandler(handleError)
+        .getSystemSettings();
+      
+      showDialog('system-settings-dialog');
+    }
+
+    // Populate system settings form
+    function populateSystemSettings(settings) {
+      document.getElementById('enableEmail').checked = settings.enableEmail;
+      document.getElementById('enableSlack').checked = settings.enableSlack;
+      document.getElementById('enableAutoLabeling').checked = settings.enableAutoLabeling;
+    }
+
+    // Save system settings
+    function saveSystemSettings(event) {
+      event.preventDefault();
+      
+      const settings = {
+        enableEmail: document.getElementById('enableEmail').checked,
+        enableSlack: document.getElementById('enableSlack').checked,
+        enableAutoLabeling: document.getElementById('enableAutoLabeling').checked
+      };
+      
+      google.script.run
+        .withSuccessHandler(() => {
+          hideDialog('system-settings-dialog');
+          showNotification('success', 'Settings saved successfully');
+        })
+        .withFailureHandler(handleError)
+        .saveSystemSettings(settings);
+    }
+
+    // Show user management
+    function showUserManagement() {
+      google.script.run
+        .withSuccessHandler(populateUserList)
+        .withFailureHandler(handleError)
+        .getUsers();
+      
+      showDialog('user-management-dialog');
+    }
+
+    // Populate user list
+    function populateUserList(users) {
+      const userList = document.querySelector('.user-list');
+      userList.innerHTML = users.map(user => `
+        <div class="user-item">
+          <div class="user-info">
+            <span class="user-email">${user.email}</span>
+            <span class="user-role">${user.role}</span>
+          </div>
+          <div class="user-actions">
+            <button onclick="editUser('${user.email}')" class="icon-btn" data-tooltip="Edit">
+              ✏️
+            </button>
+            <button onclick="deleteUser('${user.email}')" class="icon-btn" data-tooltip="Delete">
+              🗑️
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Initialize the page
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeTooltips();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HelpDesk - Dashboard</title>
+  <?!= include('templates/styles'); ?>
+  <style>
+    /* Dashboard specific styles */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: var(--spacing-lg);
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .stat-card {
+      background-color: var(--background-color);
+      border-radius: var(--border-radius-md);
+      padding: var(--spacing-lg);
+      box-shadow: var(--shadow-md);
+    }
+
+    .stat-card h3 {
+      color: var(--secondary-color);
+      font-size: var(--font-size-normal);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .stat-number {
+      font-size: var(--font-size-xxlarge);
+      font-weight: 500;
+      color: var(--primary-color);
+    }
+
+    .recent-activity {
+      background-color: var(--background-color);
+      border-radius: var(--border-radius-md);
+      padding: var(--spacing-lg);
+      box-shadow: var(--shadow-md);
+    }
+
+    .activity-list {
+      list-style: none;
+      margin-top: var(--spacing-md);
+    }
+
+    .activity-item {
+      display: flex;
+      align-items: flex-start;
+      padding: var(--spacing-md) 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .activity-item:last-child {
+      border-bottom: none;
+    }
+
+    .activity-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: var(--spacing-md);
+      flex-shrink: 0;
+    }
+
+    .activity-icon.new { background-color: #e8f0fe; color: var(--primary-color); }
+    .activity-icon.update { background-color: #fef7e0; color: var(--warning-color); }
+    .activity-icon.resolved { background-color: #e6f4ea; color: var(--success-color); }
+
+    .activity-content {
+      flex: 1;
+    }
+
+    .activity-title {
+      font-weight: 500;
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .activity-meta {
+      font-size: var(--font-size-small);
+      color: var(--secondary-color);
+    }
+
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .action-card {
+      background-color: var(--background-color);
+      border-radius: var(--border-radius-md);
+      padding: var(--spacing-lg);
+      box-shadow: var(--shadow-md);
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .action-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .action-icon {
+      font-size: 24px;
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .action-title {
+      font-weight: 500;
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .action-description {
+      font-size: var(--font-size-small);
+      color: var(--secondary-color);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <img src="https://www.wrench.chat/logo.png" alt="Wrench.chat Logo" height="40">
+        <span>HelpDesk</span>
+      </div>
+      <div class="user-info">
+        <span><?= user ?></span>
+        <a href="#" onclick="google.script.host.close()" class="logout-btn">Logout</a>
+      </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav-bar">
+      <a href="?page=home" class="active">Home</a>
+      <a href="?page=cards">Cards</a>
+      <? if (isAuthorizedAdmin(user)) { ?>
+        <a href="?page=admin">Admin</a>
+      <? } ?>
+    </nav>
+
+    <!-- Main Content -->
+    <main>
+      <!-- Quick Actions -->
+      <section class="quick-actions">
+        <div class="action-card" onclick="window.location.href='?page=cards&action=new'">
+          <div class="action-icon">📝</div>
+          <h3 class="action-title">New Card</h3>
+          <p class="action-description">Create a new support card</p>
+        </div>
+        <div class="action-card" onclick="window.location.href='?page=cards'">
+          <div class="action-icon">📋</div>
+          <h3 class="action-title">View Cards</h3>
+          <p class="action-description">Browse all support cards</p>
+        </div>
+        <div class="action-card" onclick="showDialog('schedule-meeting-dialog')">
+          <div class="action-icon">📅</div>
+          <h3 class="action-title">Schedule Meeting</h3>
+          <p class="action-description">Set up a support call</p>
+        </div>
+        <div class="action-card" onclick="window.location.href='?page=cards&view=reports'">
+          <div class="action-icon">📊</div>
+          <h3 class="action-title">Reports</h3>
+          <p class="action-description">View analytics and reports</p>
+        </div>
+      </section>
+
+      <!-- Statistics -->
+      <section class="dashboard-grid">
+        <div class="stat-card">
+          <h3>Active Cards</h3>
+          <p class="stat-number"><?= statistics.active_cards ?></p>
+        </div>
+        <div class="stat-card">
+          <h3>Response Time</h3>
+          <p class="stat-number"><?= statistics.avg_response_time ?>m</p>
+        </div>
+        <div class="stat-card">
+          <h3>Resolution Rate</h3>
+          <p class="stat-number"><?= statistics.resolution_rate ?>%</p>
+        </div>
+        <div class="stat-card">
+          <h3>Customer Satisfaction</h3>
+          <p class="stat-number"><?= statistics.satisfaction_score ?>/5</p>
+        </div>
+      </section>
+
+      <!-- Recent Activity -->
+      <section class="recent-activity">
+        <h2>Recent Activity</h2>
+        <ul class="activity-list">
+          <? activities.forEach(function(activity) { ?>
+            <li class="activity-item">
+              <div class="activity-icon <?= activity.type ?>">
+                <?= activity.icon ?>
+              </div>
+              <div class="activity-content">
+                <div class="activity-title"><?= activity.title ?></div>
+                <div class="activity-meta">
+                  <span data-relative-time="<?= activity.timestamp ?>">
+                    <?= formatRelativeTime(activity.timestamp) ?>
+                  </span>
+                  by <?= activity.user ?>
+                </div>
+              </div>
+            </li>
+          <? }); ?>
+        </ul>
+      </section>
+    </main>
+  </div>
+
+  <!-- Schedule Meeting Dialog -->
+  <div id="schedule-meeting-dialog" class="dialog" style="display: none;">
+    <h2>Schedule Support Meeting</h2>
+    <form id="scheduleMeetingForm" onsubmit="scheduleMeeting(event)">
+      <div class="form-group">
+        <label for="meetingTitle">Title</label>
+        <input type="text" id="meetingTitle" name="title" required>
+      </div>
+      <div class="form-group">
+        <label for="meetingDate">Date</label>
+        <input type="date" id="meetingDate" name="date" required>
+      </div>
+      <div class="form-group">
+        <label for="meetingTime">Time</label>
+        <input type="time" id="meetingTime" name="time" required>
+      </div>
+      <div class="form-group">
+        <label for="meetingDuration">Duration</label>
+        <select id="meetingDuration" name="duration" required>
+          <option value="30">30 minutes</option>
+          <option value="45">45 minutes</option>
+          <option value="60">1 hour</option>
+        </select>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" onclick="hideDialog('schedule-meeting-dialog')" class="secondary-btn">
+          Cancel
+        </button>
+        <button type="submit" class="primary-btn">
+          Schedule Meeting
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Scripts -->
+  <?!= include('templates/scripts'); ?>
+  <script>
+    // Schedule meeting
+    function scheduleMeeting(event) {
+      event.preventDefault();
+      
+      const form = event.target;
+      const formData = {
+        title: form.title.value,
+        date: form.date.value,
+        time: form.time.value,
+        duration: parseInt(form.duration.value)
+      };
+      
+      google.script.run
+        .withSuccessHandler(() => {
+          hideDialog('schedule-meeting-dialog');
+          showNotification('success', 'Meeting scheduled successfully');
+          form.reset();
+        })
+        .withFailureHandler(handleError)
+        .scheduleMeeting(formData);
+    }
+
+    // Set minimum date to today
+    document.getElementById('meetingDate').min = new Date().toISOString().split('T')[0];
+  </script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HelpDesk - Error</title>
+  <?!= include('templates/styles'); ?>
+  <style>
+    .error-container {
+      text-align: center;
+      padding: 48px 24px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .error-icon {
+      font-size: 64px;
+      margin-bottom: 24px;
+      color: var(--error-color);
+    }
+
+    .error-title {
+      font-size: 24px;
+      color: var(--text-color);
+      margin-bottom: 16px;
+    }
+
+    .error-message {
+      color: var(--secondary-color);
+      margin-bottom: 32px;
+    }
+
+    .error-details {
+      background: #f8f9fa;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: left;
+      font-family: monospace;
+      margin-bottom: 32px;
+      word-break: break-word;
+    }
+
+    .back-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .back-button:hover {
+      background-color: #1557b0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <img src="https://www.wrench.chat/logo.png" alt="Wrench.chat Logo" height="40">
+        <span>HelpDesk</span>
+      </div>
+    </header>
+
+    <!-- Error Content -->
+    <main class="error-container">
+      <div class="error-icon">⚠️</div>
+      <h1 class="error-title">Oops! Something went wrong</h1>
+      <p class="error-message">
+        <?= error.message || 'An unexpected error occurred.' ?>
+      </p>
+      
+      <? if (error.stack) { ?>
+        <div class="error-details">
+          <?= error.stack ?>
+        </div>
+      <? } ?>
+      
+      <a href="?page=home" class="back-button">
+        <span>←</span>
+        <span>Back to Home</span>
+      </a>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <?!= include('templates/scripts'); ?>
+  <script>
+    // Log error to console for debugging
+    console.error('Error:', <?= JSON.stringify(error) ?>);
+  </script>
+</body>
+</html>

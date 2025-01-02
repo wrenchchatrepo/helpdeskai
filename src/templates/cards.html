@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HelpDesk - Cards</title>
+  <?!= include('templates/styles'); ?>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <img src="https://www.wrench.chat/logo.png" alt="Wrench.chat Logo" height="40">
+        <span>HelpDesk</span>
+      </div>
+      <div class="user-info">
+        <span><?= user ?></span>
+        <a href="#" onclick="google.script.host.close()" class="logout-btn">Logout</a>
+      </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav-bar">
+      <a href="?page=home">Home</a>
+      <a href="?page=cards" class="active">Cards</a>
+      <? if (isAuthorizedAdmin(user)) { ?>
+        <a href="?page=admin">Admin</a>
+      <? } ?>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Cards Header -->
+      <div class="cards-header">
+        <h1>My Cards</h1>
+        <div class="cards-actions">
+          <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search cards..." onkeyup="filterCards()">
+          </div>
+          <div class="filter-box">
+            <select id="statusFilter" onchange="filterCards()">
+              <option value="">All Statuses</option>
+              <option value="new">New</option>
+              <option value="in_progress">In Progress</option>
+              <option value="resolved">Resolved</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
+          <button onclick="createNewCard()" class="primary-btn">
+            New Card
+          </button>
+        </div>
+      </div>
+
+      <!-- Cards Grid -->
+      <div class="cards-grid" id="cardsGrid">
+        <? cards.forEach(function(card) { ?>
+          <div class="card" data-id="<?= card.id ?>" data-status="<?= card.status ?>">
+            <div class="card-header">
+              <h3><?= card.title ?></h3>
+              <span class="card-status <?= card.status ?>"><?= card.status ?></span>
+            </div>
+            <div class="card-content">
+              <?= card.messages[0]?.content || '' ?>
+            </div>
+            <div class="card-footer">
+              <div class="card-labels">
+                <? card.labels.forEach(function(label) { ?>
+                  <span class="label"><?= label ?></span>
+                <? }); ?>
+              </div>
+              <div class="card-meta">
+                <span class="card-time" data-tooltip="Created on <?= formatDate(card.created_at) ?>">
+                  <?= formatDate(card.created_at) ?>
+                </span>
+                <span class="card-source" data-tooltip="Source: <?= card.source ?>">
+                  <?= card.source ?>
+                </span>
+              </div>
+            </div>
+          </div>
+        <? }); ?>
+      </div>
+
+      <!-- No Cards Message -->
+      <? if (cards.length === 0) { ?>
+        <div class="no-cards">
+          <p>No cards found. Create a new card to get started.</p>
+          <button onclick="createNewCard()" class="primary-btn">Create New Card</button>
+        </div>
+      <? } ?>
+    </main>
+  </div>
+
+  <!-- New Card Dialog -->
+  <div id="create-card-dialog" class="dialog" style="display: none;">
+    <h2>Create New Card</h2>
+    <form id="newCardForm" onsubmit="submitNewCard(event)">
+      <div class="form-group">
+        <label for="cardTitle">Title</label>
+        <input type="text" id="cardTitle" name="title" required>
+      </div>
+      <div class="form-group">
+        <label for="cardContent">Description</label>
+        <textarea id="cardContent" name="content" rows="4" required></textarea>
+      </div>
+      <div class="form-group">
+        <label for="cardLabels">Labels</label>
+        <select id="cardLabels" name="labels" multiple>
+          <? Object.entries(CONFIG.LABELS).forEach(function([category, labels]) { ?>
+            <optgroup label="<?= category ?>">
+              <? labels.forEach(function(label) { ?>
+                <option value="<?= label ?>"><?= label ?></option>
+              <? }); ?>
+            </optgroup>
+          <? }); ?>
+        </select>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" onclick="hideDialog('create-card-dialog')" class="secondary-btn">
+          Cancel
+        </button>
+        <button type="submit" class="primary-btn">
+          Create Card
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Scripts -->
+  <?!= include('templates/scripts'); ?>
+  <script>
+    // Filter cards based on search input and status filter
+    function filterCards() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const statusFilter = document.getElementById('statusFilter').value;
+      const cards = document.querySelectorAll('.card');
+      
+      cards.forEach(card => {
+        const title = card.querySelector('h3').textContent.toLowerCase();
+        const content = card.querySelector('.card-content').textContent.toLowerCase();
+        const status = card.dataset.status;
+        
+        const matchesSearch = title.includes(searchTerm) || content.includes(searchTerm);
+        const matchesStatus = !statusFilter || status === statusFilter;
+        
+        card.style.display = matchesSearch && matchesStatus ? 'block' : 'none';
+      });
+    }
+
+    // Submit new card
+    function submitNewCard(event) {
+      event.preventDefault();
+      
+      const form = event.target;
+      const formData = {
+        title: form.title.value,
+        content: form.content.value,
+        labels: Array.from(form.labels.selectedOptions).map(option => option.value)
+      };
+      
+      google.script.run
+        .withSuccessHandler(() => {
+          hideDialog('create-card-dialog');
+          showNotification('success', 'Card created successfully');
+          // Refresh the page to show the new card
+          window.location.reload();
+        })
+        .withFailureHandler(handleError)
+        .createCard(formData);
+    }
+
+    // Initialize the page
+    document.addEventListener('DOMContentLoaded', () => {
+      // Add click handlers to cards
+      document.querySelectorAll('.card').forEach(card => {
+        card.addEventListener('click', () => {
+          viewCardDetails(card.dataset.id);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
